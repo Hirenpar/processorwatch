@@ -287,5 +287,6 @@ def api_status():
     return jsonify({"stats": get_stats(conn), "merchants": get_merchant_data(conn)})
 
 if __name__ == "__main__":
-    print("ProcessorWatch Dashboard starting on http://localhost:5000")
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    port = int(os.environ.get("PORT", 5000))
+    print(f"ProcessorWatch Dashboard starting on http://0.0.0.0:{port}")
+    app.run(host="0.0.0.0", port=port, debug=False)
