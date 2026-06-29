@@ -6,7 +6,7 @@ Then open: http://localhost:5000
 """
 
 from flask import Flask, render_template_string, jsonify, request
-import sqlite3, json
+import sqlite3, json, os
 from datetime import datetime
 from monitor import init_db, run_scan, CONFIG, load_merchants
 
