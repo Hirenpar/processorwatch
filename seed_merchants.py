@@ -409,17 +409,23 @@ MERCHANTS = [
     ("Therapeutic Laser Centers","verylasertech.com","Medical Devices/Gray Area","LLLT = FDA gray zone; health claims for pain/inflammation","Small-Med"),
 ]
 
-conn = init_db()
-c = conn.cursor()
-inserted = 0
-for m in MERCHANTS:
+def seed_database(conn=None):
+  conn = conn or init_db()
+  c = conn.cursor()
+  inserted = 0
+  for m in MERCHANTS:
     try:
-        c.execute("""
-            INSERT OR IGNORE INTO merchants (name, website, category, pitch, vol_tier)
-            VALUES (?, ?, ?, ?, ?)
-        """, m)
-        if c.rowcount: inserted += 1
+      c.execute("""
+        INSERT OR IGNORE INTO merchants (name, website, category, pitch, vol_tier)
+        VALUES (?, ?, ?, ?, ?)
+      """, m)
+      if c.rowcount:
+        inserted += 1
     except Exception as e:
-        print(f"  Skip {m[0]}: {e}")
-conn.commit()
-print(f"Seeded {inserted} merchants into ProcessorWatch database.")
+      print(f"  Skip {m[0]}: {e}")
+  conn.commit()
+  return inserted
+
+if __name__ == "__main__":
+  inserted = seed_database()
+  print(f"Seeded {inserted} merchants into ProcessorWatch database.")
