@@ -13,13 +13,15 @@ from seed_merchants import seed_database
 
 def ensure_database():
     conn = init_db()
-    count = conn.execute("SELECT COUNT(*) FROM merchants").fetchone()[0]
-    if count == 0:
-        inserted = seed_database(conn)
-        print(f"Auto-seeded {inserted} merchants on first deploy.")
-    else:
-        print(f"Database ready with {count} merchants.")
-    return conn
+    try:
+        count = conn.execute("SELECT COUNT(*) FROM merchants").fetchone()[0]
+        if count == 0:
+            inserted = seed_database(conn)
+            print(f"Auto-seeded {inserted} merchants on first deploy.")
+        else:
+            print(f"Database ready with {count} merchants.")
+    finally:
+        conn.close()
 
 
 if __name__ == "__main__":

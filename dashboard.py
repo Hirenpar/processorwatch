@@ -269,8 +269,7 @@ def index():
 @app.route("/run-scan", methods=["POST"])
 def trigger_scan():
     import threading
-    conn = init_db()
-    t = threading.Thread(target=run_scan, args=(conn,), daemon=True)
+    t = threading.Thread(target=run_scan, kwargs={"verbose": False}, daemon=True)
     t.start()
     return jsonify({"message": "Scan started in background. Refresh in ~10 min."})
 

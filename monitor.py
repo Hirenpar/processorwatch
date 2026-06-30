@@ -286,54 +286,60 @@ def fire_alert(conn, merchant, alert_messages):
 # ─────────────────────────────────────────────────────────────────────────────
 # MAIN SCAN LOOP
 # ─────────────────────────────────────────────────────────────────────────────
-def run_scan(conn, verbose=True):
-    merchants = load_merchants(conn)
-    print(f"\n[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}] Scanning {len(merchants)} merchants...")
-    alerts_fired = 0
+def run_scan(conn=None, verbose=True):
+    own_conn = conn is None
+    if own_conn:
+        conn = init_db()
+    try:
+        merchants = load_merchants(conn)
+        print(f"\n[{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}] Scanning {len(merchants)} merchants...")
+        alerts_fired = 0
 
-    for merchant in merchants:
-        mid, name, url, category, pitch, vol = merchant
-        if verbose:
-            print(f"  Checking {name} ({url})...", end=" ", flush=True)
+        for merchant in merchants:
+            mid, name, url, category, pitch, vol = merchant
+            if verbose:
+                print(f"  Checking {name} ({url})...", end=" ", flush=True)
 
-        html, status, error = fetch_page(url)
+            html, status, error = fetch_page(url)
 
-        if error or not html:
-            if verbose: print(f"ERROR ({error})")
-            save_scan(conn, mid, {}, {}, "", status, error)
-            continue
+            if error or not html:
+                if verbose: print(f"ERROR ({error})")
+                save_scan(conn, mid, {}, {}, "", status, error)
+                continue
 
-        processors, fallbacks = detect_processors(html)
-        ph = page_hash(html)
+            processors, fallbacks = detect_processors(html)
+            ph = page_hash(html)
 
-        old_scan = get_last_scan(conn, mid)
-        save_scan(conn, mid, processors, fallbacks, ph, status, error)
+            old_scan = get_last_scan(conn, mid)
+            save_scan(conn, mid, processors, fallbacks, ph, status, error)
 
-        alert_msgs = analyze_change(old_scan, processors, fallbacks, merchant)
+            alert_msgs = analyze_change(old_scan, processors, fallbacks, merchant)
 
-        if alert_msgs:
-            fire_alert(conn, merchant, alert_msgs)
-            alerts_fired += 1
-            if verbose: print(f"🚨 ALERT")
-        else:
-            procs = list(processors.keys()) if processors else ["none detected"]
-            if verbose: print(f"OK ({', '.join(procs)})")
+            if alert_msgs:
+                fire_alert(conn, merchant, alert_msgs)
+                alerts_fired += 1
+                if verbose: print(f"🚨 ALERT")
+            else:
+                procs = list(processors.keys()) if processors else ["none detected"]
+                if verbose: print(f"OK ({', '.join(procs)})")
 
-        time.sleep(0.5)  # Be respectful — don't hammer sites
+            time.sleep(0.5)  # Be respectful — don't hammer sites
 
-    print(f"\nScan complete. {alerts_fired} alerts fired.")
-    return alerts_fired
+        print(f"\nScan complete. {alerts_fired} alerts fired.")
+        return alerts_fired
+    finally:
+        if own_conn:
+            conn.close()
 
 def run_scheduler():
     """Run on a schedule — call this for production deployment"""
     import threading
     hours = CONFIG["check_interval_hours"]
     print(f"ProcessorWatch running. Scanning every {hours} hours.")
-    conn = init_db()
 
     def loop():
         while True:
-            run_scan(conn)
+            run_scan(verbose=False)
             print(f"Next scan in {hours} hours...")
             time.sleep(hours * 3600)
 
